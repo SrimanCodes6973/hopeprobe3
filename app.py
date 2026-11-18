@@ -193,17 +193,30 @@ def dashboard() -> None:
 
     # ---- C. camera
     with left:
-        if cam_status == "CONNECTED" and cam.url:
-            feed = f'<div class="camera"><img src="{esc(cam.url)}" alt="ESP32-CAM"></div>'
+        if cam.enabled and cam.url:
+            feed = (
+                f'<div class="camera">'
+                f'<img src="{esc(cam.url)}" alt="ESP32-CAM">'
+                f'</div>'
+            )
         else:
-            msg = {"DISABLED": "CAMERA MODULE DISABLED",
-                   "NOT CONFIGURED": "NO CAMERA CONFIGURED<br><small>set stream URL in sidebar</small>"
-                   }.get(cam_status, "CAMERA DISCONNECTED<br><small>NO SIGNAL</small>")
+            msg = (
+                "CAMERA MODULE DISABLED"
+                if not cam.enabled
+                else "NO CAMERA CONFIGURED<br><small>set stream URL in sidebar</small>"
+            )
             feed = f'<div class="camera"><div>{msg}</div></div>'
-        st.markdown(panel("CAMERA FEED · ESP32-CAM / OV2640",
-                          f'<div class="row"><span>STATUS</span><span class="{cam_cls(cam_status)}">'
-                          f'{esc(cam_status)}</span></div>' + feed), unsafe_allow_html=True)
 
+        st.markdown(
+            panel(
+                "CAMERA FEED · ESP32-CAM / OV2640",
+                f'<div class="row"><span>STATUS</span>'
+                f'<span class="{cam_cls(cam_status)}">'
+                f'{esc(cam_status)}</span></div>'
+                + feed
+            ),
+            unsafe_allow_html=True
+        )
     # ---- B. sensors
     with right:
         t_txt, t_cls = thermal_state(s)
