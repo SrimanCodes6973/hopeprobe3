@@ -106,7 +106,16 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT); pinMode(ECHO_PIN, INPUT);
 #endif
   Wire.begin(21, 22);
+
+  Serial.println("[DEBUG] Initializing MLX90614...");
+
   mlxOk = mlx.begin();
+
+  if (mlxOk) {
+    Serial.println("[SUCCESS] MLX90614 detected!");
+} else {
+    Serial.println("[ERROR] MLX90614 initialization failed!");
+}
   lastPcMsg = millis();
   delay(300);
   announce();
