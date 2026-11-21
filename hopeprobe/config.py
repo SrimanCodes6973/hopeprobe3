@@ -12,7 +12,10 @@ BAUD_CHOICES = [9600, 57600, 115200, 230400]
 
 # --- Optional modules --------------------------------------------------------
 ENABLE_THERMAL = True        # MLX90614
-ENABLE_ULTRASONIC = False    # HC-SR04 (not installed yet -> disabled by default)
+SIMULATE_THERMAL = True      # MLX90614 hardware faulty -> Python-side demo simulation
+SIM_MIN_C = 25.0             # simulated readings are clamped to this range
+SIM_MAX_C = 32.0
+ENABLE_ULTRASONIC = False   # HC-SR04 (not installed yet -> disabled by default)
 ENABLE_CAMERA = True         # ESP32-CAM
 
 # Example: http://192.168.4.1:81/stream  (leave empty until the camera is ready)

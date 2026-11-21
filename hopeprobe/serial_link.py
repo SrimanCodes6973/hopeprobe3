@@ -34,6 +34,7 @@ import serial
 from serial.tools import list_ports
 
 from . import config
+from .thermal_sim import ThermalSimulator
 
 CMD_NAMES = {"F": "FORWARD", "B": "BACKWARD", "L": "LEFT", "R": "RIGHT", "S": "STOP"}
 
@@ -57,6 +58,7 @@ class SerialLink:
         self.baud = config.DEFAULT_BAUD
         self.thermal_enabled = config.ENABLE_THERMAL
         self.ultra_enabled = config.ENABLE_ULTRASONIC
+        self.thermal_sim = ThermalSimulator()   # demo mode: values generated in Python
 
         self.events: deque = deque(maxlen=400)
         self._last_sensor_log = 0.0
@@ -205,6 +207,8 @@ class SerialLink:
                     self.firmware = parts[2]
                 self.log("INFO", f"ESP32 connected - firmware {parts[2]}")
             elif tag == "TEMP" and len(parts) >= 3:
+                if config.SIMULATE_THERMAL:
+                    return                    # thermal handled in Python; ignore ESP32 values
                 obj, amb = float(parts[1]), float(parts[2])
                 if math.isnan(obj) or math.isnan(amb):
                     return
@@ -264,6 +268,14 @@ class SerialLink:
             connected = self._ser is not None
             alive = connected and self.last_rx is not None and now - self.last_rx <= to
             th = self.thermal if (self.thermal and now - self.thermal[2] <= to) else None
+            simulated = config.SIMULATE_THERMAL and self.thermal_enabled
+            if simulated:
+                o, a = self.thermal_sim.read()
+                th = (o, a, now)
+                if now - self._last_sensor_log >= config.SENSOR_LOG_EVERY_S:
+                    self._last_sensor_log = now
+                    self.events.append((datetime.now().strftime("%H:%M:%S"), "SENSOR",
+                                        f"[SIMULATED] MLX90614 object {o:.1f} C, ambient {a:.1f} C"))
             di = self.distance if (self.distance and now - self.distance[1] <= to) else None
             return {
                 "connected": connected,
@@ -280,6 +292,7 @@ class SerialLink:
                 "last_ack": self.last_ack,
                 "cmd_pending": self.cmd_pending,
                 "thermal_enabled": self.thermal_enabled,
+                "thermal_simulated": simulated,
                 "ultra_enabled": self.ultra_enabled,
                 "events": list(self.events)[-120:][::-1],
             }

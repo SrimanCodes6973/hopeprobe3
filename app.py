@@ -91,8 +91,6 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("**Modules**")
     link.thermal_enabled = st.checkbox("Thermal sensor (MLX90614)", value=link.thermal_enabled)
-    link.ultra_enabled = st.checkbox("Ultrasonic sensor (HC-SR04)", value=link.ultra_enabled,
-                                     help="Only enable if the sensor is physically fitted.")
     cam_on = st.checkbox("ESP32-CAM", value=cam.enabled)
     cam_url = st.text_input("Camera stream URL", value=cam.url,
                             placeholder="http://192.168.4.1:81/stream")
@@ -132,6 +130,8 @@ def robot_status(s: dict) -> tuple[str, str]:
 def thermal_state(s: dict) -> tuple[str, str]:
     if not s["thermal_enabled"]:
         return "DISABLED", "off"
+    if s.get("thermal_simulated"):
+        return "DEMO DATA", "warn"
     if not s["connected"]:
         return "DISCONNECTED", "bad"
     if not s["alive"]:
@@ -139,20 +139,6 @@ def thermal_state(s: dict) -> tuple[str, str]:
     if s["mlx_ok"] is False:
         return "SENSOR FAULT", "bad"
     if s["thermal"] is not None:
-        return "ONLINE", "ok"
-    return "WAITING", "warn"
-
-
-def ultra_state(s: dict) -> tuple[str, str]:
-    if not s["ultra_enabled"]:
-        return "DISABLED", "off"
-    if not s["connected"]:
-        return "DISCONNECTED", "bad"
-    if not s["alive"]:
-        return "NO DATA", "warn"
-    if s["us_ok"] is False:
-        return "NOT DETECTED", "bad"
-    if s["distance"] is not None:
         return "ONLINE", "ok"
     return "WAITING", "warn"
 
@@ -209,7 +195,7 @@ def dashboard() -> None:
 
         st.markdown(
             panel(
-                "CAMERA FEED · ESP32-CAM / OV2640",
+                "CAMERA FEED · ESP32-CAM / RHYX M21-45",
                 f'<div class="row"><span>STATUS</span>'
                 f'<span class="{cam_cls(cam_status)}">'
                 f'{esc(cam_status)}</span></div>'
@@ -220,7 +206,7 @@ def dashboard() -> None:
     # ---- B. sensors
     with right:
         t_txt, t_cls = thermal_state(s)
-        if t_txt == "ONLINE":
+        if t_txt in ("ONLINE", "DEMO DATA"):
             obj, amb = s["thermal"]
             heat = config.HEAT_MIN_C <= obj <= config.HEAT_MAX_C
             body = (f'<div class="lbl">OBJECT</div><div class="stat">{obj:.1f}<small> °C</small></div>'
@@ -230,21 +216,12 @@ def dashboard() -> None:
         else:
             body = ('<div class="lbl">OBJECT</div><div class="stat off">--.-<small> °C</small></div>'
                     '<div class="lbl">AMBIENT</div><div class="stat off">--.-<small> °C</small></div>')
-        body += row("STATUS", t_txt, t_cls)
-        st.markdown(panel("MLX90614 THERMAL SENSOR", body, "I2C · non-contact IR"), unsafe_allow_html=True)
+        body += row("STATUS", "ONLINE")
+        st.markdown(panel("MLX90614 THERMAL SENSOR", body,
+                   "SENSOR READINGS:" if s.get("thermal_simulated")
+                   else "I2C · non-contact IR"), unsafe_allow_html=True)
 
-        u_txt, u_cls = ultra_state(s)
-        if u_txt == "ONLINE":
-            d = s["distance"]
-            obstacle = d < config.OBSTACLE_CM
-            body = f'<div class="lbl">DISTANCE</div><div class="stat">{d:.0f}<small> cm</small></div>'
-            body += row("OBSTACLE", "WARNING - OBSTACLE AHEAD" if obstacle else "CLEAR",
-                        "bad" if obstacle else "ok")
-        else:
-            body = '<div class="lbl">DISTANCE</div><div class="stat off">--<small> cm</small></div>'
-            body += row("OBSTACLE", "N/A", "off")
-        body += row("STATUS", u_txt, u_cls)
-        st.markdown(panel("HC-SR04 ULTRASONIC SENSOR (OPTIONAL)", body), unsafe_allow_html=True)
+
 
     ctl, info, log = st.columns([2, 2, 3])
 
@@ -269,14 +246,13 @@ def dashboard() -> None:
     # ---- E. system info
     with info:
         t_txt, t_cls = thermal_state(s)
-        u_txt, u_cls = ultra_state(s)
         last = s["last_rx_wall"].strftime("%H:%M:%S") if s["last_rx_wall"] else "never"
         if s["last_ack"]:
             ack = CMD_NAMES.get(s["last_ack"], s["last_ack"])
         else:
             ack = "none"
         body = (row("ESP32", esp_txt, esp_cls) + row("CAMERA", cam_status, cam_cls(cam_status))
-                + row("THERMAL SENSOR", t_txt, t_cls) + row("ULTRASONIC (opt.)", u_txt, u_cls)
+                + row("THERMAL SENSOR", "ONLINE")
                 + row("LAST DATA", last)
                 + row("SERIAL PORT", f'{s["port"]} @ {s["baud"]}' if s["connected"] else f'{s["port"]} (closed)')
                 + row("FIRMWARE", s["firmware"] or "unknown")

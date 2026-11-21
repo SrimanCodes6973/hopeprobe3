@@ -1,17 +1,15 @@
 /*
-  HOPEPROBE 3.0 - ESP32 DevKit V1 example firmware
+  HOPEPROBE 3.0 - ESP32 DevKit V1 motor-control firmware
   Implements the dashboard serial protocol (115200 baud, ASCII lines).
-
-  Libraries (Arduino IDE -> Library Manager):
-    - Adafruit MLX90614 Library   (also installs Adafruit BusIO)
+  Thermal sensing is handled by the Python dashboard; this firmware only
+  drives the motors and talks to the dashboard. No extra libraries needed.
 
   Board: "ESP32 Dev Module"
 
   PC -> ESP32            ESP32 -> PC
     CMD,F|B|L|R|S          HELLO,HOPEPROBE,<fw>
-    PING                   TEMP,<obj>,<amb>
+    PING
     HELLO?                 DIST,<cm>            (only if ENABLE_ULTRASONIC 1)
-                           STATUS,MLX,<0|1>
                            STATUS,US,<0|1>
                            ACK,<cmd>   PONG   ERR,<text>
 
@@ -19,31 +17,24 @@
 
   Wiring (L298N driver, ENA/ENB jumpers left ON = full speed):
     IN1=26  IN2=27  (left motor)     IN3=14  IN4=12 (right motor)
-    MLX90614: SDA=21, SCL=22, 3.3V, GND
     HC-SR04 (optional): TRIG=5, ECHO=18  -> ECHO is 5 V! use a voltage
     divider (e.g. 1k + 2k) before the ESP32 pin.
   If a motor spins the wrong way, swap its two wires on the L298N.
 */
 
-#include <Wire.h>
-#include <Adafruit_MLX90614.h>
-
-#define FW_VERSION "1.0"
+#define FW_VERSION "1.1-motor"
 #define ENABLE_ULTRASONIC 0        // set to 1 once the HC-SR04 is fitted
 
 const int IN1 = 26, IN2 = 27, IN3 = 14, IN4 = 12;
 const int TRIG_PIN = 5, ECHO_PIN = 18;
 
 const unsigned long PC_TIMEOUT_MS = 3000;
-const unsigned long TEMP_EVERY_MS = 500;
 const unsigned long DIST_EVERY_MS = 300;
 const unsigned long STATUS_EVERY_MS = 5000;
 
-Adafruit_MLX90614 mlx;
-bool mlxOk = false;
 bool moving = false;
 String rxLine;
-unsigned long lastPcMsg = 0, tTemp = 0, tDist = 0, tStatus = 0;
+unsigned long lastPcMsg = 0, tDist = 0, tStatus = 0;
 
 void drive(int a, int b, int c, int d) {
   digitalWrite(IN1, a); digitalWrite(IN2, b);
@@ -53,7 +44,6 @@ void drive(int a, int b, int c, int d) {
 void stopMotors() { drive(LOW, LOW, LOW, LOW); moving = false; }
 
 void sendStatus() {
-  Serial.print("STATUS,MLX,"); Serial.println(mlxOk ? 1 : 0);
   Serial.print("STATUS,US,");  Serial.println(ENABLE_ULTRASONIC ? 1 : 0);
 }
 
@@ -105,17 +95,6 @@ void setup() {
 #if ENABLE_ULTRASONIC
   pinMode(TRIG_PIN, OUTPUT); pinMode(ECHO_PIN, INPUT);
 #endif
-  Wire.begin(21, 22);
-
-  Serial.println("[DEBUG] Initializing MLX90614...");
-
-  mlxOk = mlx.begin();
-
-  if (mlxOk) {
-    Serial.println("[SUCCESS] MLX90614 detected!");
-} else {
-    Serial.println("[ERROR] MLX90614 initialization failed!");
-}
   lastPcMsg = millis();
   delay(300);
   announce();
@@ -133,17 +112,6 @@ void loop() {
   if (moving && now - lastPcMsg > PC_TIMEOUT_MS) {       // link-loss failsafe
     stopMotors();
     Serial.println("ERR,WATCHDOG_STOP");
-  }
-
-  if (mlxOk && now - tTemp >= TEMP_EVERY_MS) {
-    tTemp = now;
-    float o = mlx.readObjectTempC(), a = mlx.readAmbientTempC();
-    if (!isnan(o) && !isnan(a)) {                        // only real readings
-      Serial.print("TEMP,"); Serial.print(o, 1); Serial.print(",");
-      Serial.println(a, 1);
-    } else {
-      Serial.println("ERR,MLX_READ");
-    }
   }
 
 #if ENABLE_ULTRASONIC

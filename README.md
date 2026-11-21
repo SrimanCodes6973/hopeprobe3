@@ -46,7 +46,7 @@ Open http://localhost:8501. The dashboard works with nothing plugged in
 STOP/FORWARD buttons say "not sent: ESP32 disconnected".
 
 **Stage 2 – Serial + thermal sensor.**
-1. Arduino IDE → install *ESP32 by Espressif* in Boards Manager and *Adafruit MLX90614 Library* in Library Manager.
+1. Arduino IDE → install *ESP32 by Espressif* in Boards Manager (no extra libraries needed; thermal data is simulated in the Python dashboard, demo mode).
 2. Open `firmware/hopeprobe_esp32/hopeprobe_esp32.ino`, board "ESP32 Dev Module", upload.
    (Hold **BOOT** while "Connecting…" shows if upload fails.)
 3. **Close the Arduino Serial Monitor** (it locks the port).
@@ -82,9 +82,8 @@ ASCII lines ending in `\n`, 115200 baud.
 | ESP32 → PC | meaning |
 |---|---|
 | `HELLO,HOPEPROBE,1.0` | firmware announce |
-| `TEMP,<obj>,<amb>` | MLX90614 °C |
 | `DIST,<cm>` | HC-SR04 (only if fitted) |
-| `STATUS,MLX,<0\|1>` / `STATUS,US,<0\|1>` | sensor detected? |
+| `STATUS,US,<0\|1>` | sensor detected? |
 | `ACK,<cmd>` | command executed |
 | `PONG`, `ERR,<text>` | heartbeat reply / error |
 
