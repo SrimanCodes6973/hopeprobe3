@@ -25,7 +25,7 @@
 #define FW_VERSION "1.1-motor"
 #define ENABLE_ULTRASONIC 0        // set to 1 once the HC-SR04 is fitted
 
-const int IN1 = 26, IN2 = 27, IN3 = 14, IN4 = 12;
+const int IN1 = 26, IN2 = 27, IN3 = 14, IN4 = 25;
 const int TRIG_PIN = 5, ECHO_PIN = 18;
 
 const unsigned long PC_TIMEOUT_MS = 3000;
