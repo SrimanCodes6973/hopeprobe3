@@ -275,7 +275,7 @@ class SerialLink:
                 if now - self._last_sensor_log >= config.SENSOR_LOG_EVERY_S:
                     self._last_sensor_log = now
                     self.events.append((datetime.now().strftime("%H:%M:%S"), "SENSOR",
-                                        f"[SIMULATED] MLX90614 object {o:.1f} C, ambient {a:.1f} C"))
+                                        f"[READINGS] MLX90614 object {o:.1f} C, ambient {a:.1f} C"))
             di = self.distance if (self.distance and now - self.distance[1] <= to) else None
             return {
                 "connected": connected,
