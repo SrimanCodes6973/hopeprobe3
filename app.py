@@ -13,7 +13,7 @@ from hopeprobe import config
 from hopeprobe.camera import CameraMonitor
 from hopeprobe.serial_link import CMD_NAMES, SerialLink, list_serial_ports
 
-st.set_page_config(page_title="HOPEPROBE 3.0", layout="wide")
+st.set_page_config(page_title="HOPEPROBE", layout="wide")
 
 # ----------------------------------------------------------------- singletons
 @st.cache_resource
@@ -168,7 +168,7 @@ def dashboard() -> None:
         esp_txt, esp_cls = "CONNECTED", "ok"
     rb_txt, rb_cls = robot_status(s)
     st.markdown(
-        '<div class="hp-header"><div><span class="hp-title">HOPEPROBE 3.0</span>'
+        '<div class="hp-header"><div><span class="hp-title">HOPEPROBE</span>'
         '<span class="hp-tag">SEARCH · DETECT · RESCUE</span></div><div class="hp-chips">'
         + chip("SYSTEM", sys_txt, sys_cls) + chip("ESP32", esp_txt, esp_cls)
         + chip("ROBOT", rb_txt, rb_cls)
